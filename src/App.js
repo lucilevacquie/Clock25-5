@@ -1,25 +1,24 @@
-import logo from './logo.svg';
+import React, {useState} from "react";
 import './App.css';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+const Clock = () => {
+
+  const [break, setBreak] = useState(5)
+
+  return(
+    <div>
+      <div id="break-label">Break Length
+        <div id="break-length">{break}</div>
+        <button id="break-increment">+</button>
+        <button id="break-decrement">-</button>
+      </div>
+      <div id="session-label">Session Length
+        <button id="session-increment">+</button>
+        <button id="session-decrement">-</button>
+      </div>
     </div>
-  );
+    
+  )
 }
 
-export default App;
+export default Clock;
