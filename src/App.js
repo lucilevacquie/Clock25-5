@@ -1,9 +1,11 @@
-import React, {useState, useEffect} from "react";
+import React, {useState, useEffect, useRef} from "react";
 import Button from '@material-ui/core/Button';
 import AddBoxTwoToneIcon from '@material-ui/icons/AddBoxTwoTone';
 import IndeterminateCheckBoxTwoToneIcon from '@material-ui/icons/IndeterminateCheckBoxTwoTone';
 import PlayCircleFilledTwoToneIcon from '@material-ui/icons/PlayCircleFilledTwoTone';
+import PauseCircleFilledTwoToneIcon from '@material-ui/icons/PauseCircleFilledTwoTone';
 import ReplayTwoToneIcon from '@material-ui/icons/ReplayTwoTone';
+import Beep from "./assets/audio6.wav";
 import './App.css';
 
 const Clock = () => {
@@ -13,7 +15,9 @@ const Clock = () => {
   const [chrono, setChrono] = useState(session * 60)
   const [play, setPlay] = useState(false)
   const [isOnBreak, setIsOnBreak] = useState(false)
+  const [isFirstSession, setIsFirstSession] = useState(true)
 
+  const beep = useRef()
 
   useEffect(() => {
     if (isOnBreak){
@@ -22,13 +26,16 @@ const Clock = () => {
       setChrono(session * 60)
     }
     
-  }, [session, brk])
+  }, [session, brk, isOnBreak])
 
   const Reset = () => {
     setPlay(false)
     setBrk(5)
     setSession(25)
     setChrono(session * 60)
+    setIsFirstSession(true)
+    // beep.current.pause()
+    // beep.current.load()
   }
 
   const padTime = time => {
@@ -49,15 +56,22 @@ const Clock = () => {
     if (chrono > 0){
       timer = setTimeout(() => setChrono(c => c - 1), 1000)
     } else if (chrono === 0){
-      setIsOnBreak(true)
-      setChrono(brk * 60)
+      beep.current.play()
+      if(!isOnBreak){
+        setIsOnBreak(true)
+        setChrono(brk * 60)
+      } else {
+        setIsOnBreak(false)
+        setChrono(session * 60)
+        setIsFirstSession(false)
+      }
     }
     return () => {
       if (timer) {
         clearTimeout(timer)
       }
     }
-  }, [chrono, play, brk, isOnBreak])
+  }, [chrono, play, brk, isOnBreak, session])
 
   return(
     <div id="container">
@@ -69,7 +83,7 @@ const Clock = () => {
             <Button id="session-increment" onClick={() => (session + 1 <= 60) ? setSession(session + 1) : null}>
               <AddBoxTwoToneIcon/>
             </Button>
-            <Button id="session-decrement" onClick={() => (session - 1 >= 0) ? setSession(session - 1) : null}>
+            <Button id="session-decrement" onClick={() => (session - 1 > 0) ? setSession(session - 1) : null}>
               <IndeterminateCheckBoxTwoToneIcon/>
             </Button>
           </div>
@@ -78,7 +92,7 @@ const Clock = () => {
             <Button id="break-increment" onClick={() => (brk + 1 <= 60) ? setBrk(brk + 1) : null}>
               <AddBoxTwoToneIcon/>
             </Button>
-            <Button id="break-decrement" onClick={() => (brk -1 >= 0) ? setBrk(brk - 1) : null}>
+            <Button id="break-decrement" onClick={() => (brk -1 > 0) ? setBrk(brk - 1) : null}>
               <IndeterminateCheckBoxTwoToneIcon/>
             </Button>
           </div>
@@ -92,13 +106,15 @@ const Clock = () => {
             {ChronoFormat(chrono)}
           </div>
           <Button id="start_stop">
-            <PlayCircleFilledTwoToneIcon onClick={() => setPlay(!play)}/>
+            {play ?  <PauseCircleFilledTwoToneIcon onClick={() => setPlay(false)}/> : <PlayCircleFilledTwoToneIcon onClick={() => setPlay(true)}/> }
           </Button>
           <Button id="reset" onClick={() => Reset()}>
             <ReplayTwoToneIcon/>
           </Button>
-          {isOnBreak ? <div>Break has begun</div> : null}
+          {isOnBreak && <div>A break as begun</div>}
+          {(!isOnBreak && !isFirstSession) && <div>A session has begun</div>}
         </div>
+        <audio ref={beep} id="beep" src={Beep}/>
       </div>
 
     </div>
