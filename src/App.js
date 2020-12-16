@@ -8,91 +8,120 @@ import ReplayTwoToneIcon from '@material-ui/icons/ReplayTwoTone';
 import Beep from "./assets/audio6.wav";
 import './App.css';
 
+const modes = {
+  SESSION: "Session",
+  BREAK: "Break"
+}
+
 const Clock = () => {
 
   const [brk, setBrk] = useState(5)
   const [session, setSession] = useState(25)
-  const [chrono, setChrono] = useState(session * 60)
-  const [play, setPlay] = useState(false)
-  const [isOnBreak, setIsOnBreak] = useState(false)
+  const [chrono, setChrono] = useState(25 * 60)
+  const [mode, setMode] = useState(modes.SESSION)
+  const [isPlaying, setIsPlaying] = useState(false)
   const [isFirstSession, setIsFirstSession] = useState(true)
 
   const beep = useRef()
 
-  useEffect(() => {
-    if (isOnBreak){
-      setChrono(brk * 60)
-    } else {
-      setChrono(session * 60)
-    }
-    
-  }, [session, brk, isOnBreak])
-
   const Reset = () => {
-    setPlay(false)
     setBrk(5)
     setSession(25)
-    setChrono(session * 60)
+    setChrono(25 * 60)
+    setMode("Session")
+    setIsPlaying(false)
     setIsFirstSession(true)
-    // beep.current.pause()
-    // beep.current.load()
+    beep.current.pause()
+    beep.current.currentTime = 0
   }
 
-  const padTime = time => {
-    return String(time).length === 1 ? `0${time}` : `${time}`
+  const decrement = (option) => {
+    if(option === modes.BREAK){
+      if(!isPlaying && brk > 1){
+        setBrk(prevState => prevState - 1)
+      }
+    }
+    if(option === modes.SESSION){
+      if(!isPlaying && session > 1){
+        setSession(prevState => {
+          setChrono((prevState - 1) * 60)
+          return prevState - 1
+        })
+      }
+    }
   }
 
-  const ChronoFormat = time => {
-    const minutes = Math.floor(time/60)
-    const seconds = time % 60
-    return `${minutes}:${padTime(seconds)}`
+  const increment = (option) => {
+    if(option === modes.BREAK){
+      if(!isPlaying && brk < 60){
+        setBrk(prevState => prevState + 1)
+      }
+    }
+    if(option === modes.SESSION){
+      if(!isPlaying && session < 60){
+        setSession(prevState => {
+          setChrono((prevState + 1) * 60)
+          return prevState + 1
+        })
+      }
+    }
   }
 
   useEffect(() => {
-    let timer
-    if (!play){
-      return
-    }
-    if (chrono > 0){
-      timer = setTimeout(() => setChrono(c => c - 1), 1000)
-    } else if (chrono === 0){
-      beep.current.play()
-      if(!isOnBreak){
-        setIsOnBreak(true)
+    const handleSwitch = () => {
+      if(mode === modes.SESSION){
+        setMode(modes.BREAK)
         setChrono(brk * 60)
-      } else {
-        setIsOnBreak(false)
+      } else if(mode === modes.BREAK){
+        if (isFirstSession){
+          setIsFirstSession(false)
+        }
+        setMode(modes.SESSION)
         setChrono(session * 60)
-        setIsFirstSession(false)
       }
     }
-    return () => {
-      if (timer) {
-        clearTimeout(timer)
-      }
+
+    let timer
+ 
+    if (isPlaying && chrono > 0){
+      timer = setInterval(() => {
+        setChrono(chrono - 1)
+      }, 1000)
+    } else if (isPlaying && chrono === 0){
+      beep.current.play()
+      timer = setInterval(() => {
+        handleSwitch()
+      }, 1000)
+    } else {
+      clearInterval(timer)
     }
-  }, [chrono, play, brk, isOnBreak, session])
+    return () => clearInterval(timer)
+  }, [chrono, isPlaying, brk, session, mode])
+
+  let minutes = Math.floor(chrono / 60)
+  let seconds = chrono % 60
 
   return(
     <div id="container">
       <div id="row1">
         <h1>Clock 25 + 5</h1>
         <div id="parameters">
-          <div id="session-label">Session Length
+          <div id="session-label">
+            Session Length
             <div id="session-length">{session}</div>
-            <Button id="session-increment" onClick={() => (session + 1 <= 60) ? setSession(session + 1) : null}>
+            <Button id="session-increment" onClick={() => increment(modes.SESSION)}>
               <AddBoxTwoToneIcon/>
             </Button>
-            <Button id="session-decrement" onClick={() => (session - 1 > 0) ? setSession(session - 1) : null}>
+            <Button id="session-decrement" onClick={() => decrement(modes.SESSION)}>
               <IndeterminateCheckBoxTwoToneIcon/>
             </Button>
           </div>
           <div id="break-label">Break Length
             <div id="break-length">{brk}</div>
-            <Button id="break-increment" onClick={() => (brk + 1 <= 60) ? setBrk(brk + 1) : null}>
+            <Button id="break-increment" onClick={() => increment(modes.BREAK)}>
               <AddBoxTwoToneIcon/>
             </Button>
-            <Button id="break-decrement" onClick={() => (brk -1 > 0) ? setBrk(brk - 1) : null}>
+            <Button id="break-decrement" onClick={() => decrement(modes.BREAK)}>
               <IndeterminateCheckBoxTwoToneIcon/>
             </Button>
           </div>
@@ -101,18 +130,20 @@ const Clock = () => {
       </div>
       
       <div id="row2">      
-        <div id="timer-label">Session
+        <div id="timer-label">
+          {mode}
           <div id="time-left">
-            {ChronoFormat(chrono)}
+            {minutes < 10 ? ("0" + minutes).slice(-2) : minutes}:
+            {seconds < 10 ? ("0" + seconds).slice(-2) : seconds}
           </div>
-          <Button id="start_stop">
-            {play ?  <PauseCircleFilledTwoToneIcon onClick={() => setPlay(false)}/> : <PlayCircleFilledTwoToneIcon onClick={() => setPlay(true)}/> }
+          <Button id="start_stop" onClick={isPlaying ? () => setIsPlaying(false) : () => setIsPlaying(true)}>
+            {isPlaying ?  <PauseCircleFilledTwoToneIcon/> : <PlayCircleFilledTwoToneIcon/> }
           </Button>
           <Button id="reset" onClick={() => Reset()}>
             <ReplayTwoToneIcon/>
           </Button>
-          {isOnBreak && <div>A break as begun</div>}
-          {(!isOnBreak && !isFirstSession) && <div>A session has begun</div>}
+          {mode === modes.BREAK && <div>A break as begun</div>}
+          {(mode === modes.SESSION && !isFirstSession) && <div>A session has begun</div>}
         </div>
         <audio ref={beep} id="beep" src={Beep}/>
       </div>
